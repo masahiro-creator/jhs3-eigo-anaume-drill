@@ -22,32 +22,42 @@ export function renderHomeScreen({ dueCount, freshCount, stageCounts, learnedCou
   ).join("");
 
   return `
-    <h1>中学英語 空所補充ドリル</h1>
-    <p class="sub">中1〜中3の文法 ${totalQuestions}問 ／ 忘れかけた頃に出直してくる仕組み</p>
+    <div class="app-title">✏️ 空所補充ドリル</div>
+    <div class="hero">
+      <p class="greeting">😊 今日もいっしょに英語をやっつけよう！</p>
+      <p class="greeting-sub">中1〜中3の文法 ${totalQuestions}問 ／ 忘れかけた頃にまた出てくる仕組みだよ</p>
+    </div>
 
     <div class="card">
       <div class="today">
-        <div><span class="num">${dueCount}<small>問</small></span><span class="numlabel">今日の復習</span></div>
-        <div><span class="num">${freshCount}<small>問</small></span><span class="numlabel">はじめての問題</span></div>
+        <div class="today-tile review">
+          <span class="num">${dueCount}<small>問</small></span><span class="numlabel">🔁 今日の復習</span>
+        </div>
+        <div class="today-tile">
+          <span class="num">${freshCount}<small>問</small></span><span class="numlabel">✨ はじめての問題</span>
+        </div>
       </div>
       ${
         hasWork
-          ? `<button class="btn" style="margin-top:14px" data-action="start">はじめる</button>`
-          : `<p class="meta" style="margin:14px 0 0">今日の分は終わりました。また明日戻ってきてください。</p>`
+          ? `<button class="btn" style="margin-top:14px" data-action="start">🚀 はじめる</button>`
+          : `<div class="empty-state" style="margin-top:14px">
+               <span class="emoji">🎉</span>
+               <p class="meta" style="margin:0">今日の分は終わったよ！また明日会おうね。</p>
+             </div>`
       }
     </div>
 
     <div class="card">
-      <div class="meta">覚え直しの段階（${learnedCount}問を学習中）</div>
+      <div class="meta">🧠 覚え直しの段階（${learnedCount}問を学習中）</div>
       <div class="stages">${stagesHtml}</div>
-      <p class="meta" style="margin:12px 0 0">正解して理由も言えた問題は、右の段階へ進みます。間違えた問題は最初に戻ります。</p>
+      <p class="meta" style="margin:12px 0 0">正解して理由も言えた問題は、右の段階へ進むよ。間違えた問題は最初に戻るよ。</p>
     </div>
 
     <div class="card">
-      <div class="meta" style="margin-bottom:6px">1日に出す新しい問題</div>
+      <div class="meta" style="margin-bottom:6px">📚 1日に出す新しい問題</div>
       <div class="row">${newPerDayHtml}</div>
     </div>
 
-    <div class="foot"><button class="link" data-action="go-stats">分野ごとの成績を見る</button></div>
+    <div class="foot"><button class="link" data-action="go-stats">📊 分野ごとの成績を見る</button></div>
   `;
 }

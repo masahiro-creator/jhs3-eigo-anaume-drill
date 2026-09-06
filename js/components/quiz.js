@@ -33,8 +33,8 @@ export function renderQuizScreen({ question, index, total, picked }) {
   const answerBlockHtml = !answered
     ? ""
     : `
-    <div class="card" style="margin-top:14px">
-      <p class="verdict ${isCorrect ? "ok" : "ng"}">${isCorrect ? "正解" : "不正解"}</p>
+    <div class="card answer-block" style="margin-top:14px">
+      <p class="verdict ${isCorrect ? "ok" : "ng"}">${isCorrect ? "🎉 正解！" : "💡 不正解"}</p>
       <span class="point">問われているもの：${escapeHtml(question.point)}</span>
       <p class="en" style="margin:0 0 2px">${renderCompletedSentenceWithMarkers(question)}</p>
       <p class="jp">${escapeHtml(question.translation)}</p>
@@ -44,21 +44,26 @@ export function renderQuizScreen({ question, index, total, picked }) {
     ${
       isCorrect
         ? `
-      <p class="meta" style="margin:16px 0 8px">この正解、根拠を言えましたか。</p>
+      <p class="meta" style="margin:16px 0 8px">この正解、根拠を言えましたか？</p>
       <div class="row">
-        <button class="btn" type="button" data-action="grade" data-outcome="sure">根拠が言えた</button>
-        <button class="btn ghost" type="button" data-action="grade" data-outcome="guess">なんとなく当てた</button>
+        <button class="btn mint" type="button" data-action="grade" data-outcome="sure">💪 根拠が言えた</button>
+        <button class="btn ghost" type="button" data-action="grade" data-outcome="guess">🤔 なんとなく当てた</button>
       </div>`
-        : `<button class="btn" type="button" style="margin-top:16px" data-action="grade" data-outcome="miss">次へ</button>`
+        : `<button class="btn" type="button" style="margin-top:16px" data-action="grade" data-outcome="miss">次へ ▶</button>`
     }
   `;
 
+  const gradeChipClass = `g${question.grade}`;
+
   return `
     <div class="progress"><i style="width:${progressPct}%"></i></div>
-    <div class="meta">${index + 1} / ${total}問　中${question.grade}　${escapeHtml(question.category)}</div>
+    <div class="meta">
+      <span class="grade-chip ${gradeChipClass}">中${question.grade}</span>${escapeHtml(question.category)}
+      　${index + 1} / ${total}問
+    </div>
     <div class="card"><p class="en" style="margin:6px 0 4px">${renderSentenceWithBlank(question.sentence)}</p></div>
     <div id="choices">${choicesHtml}</div>
-    ${!answered ? `<p class="meta" style="margin-top:14px">選択肢を縦に見て、何が問われているか先に考えてみよう。</p>` : ""}
+    ${!answered ? `<p class="meta" style="margin-top:14px">💭 選択肢を縦に見て、何が問われているか先に考えてみよう。</p>` : ""}
     ${answerBlockHtml}
   `;
 }
