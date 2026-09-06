@@ -1,0 +1,10 @@
+{
+  "name": "jhs3-eigo-anaume-drill",
+  "version": "1.0.0",
+  "private": true,
+  "description": "中学英語 空所補充ドリル — 忘却曲線に沿った反復学習アプリ",
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/*.test.js"
+  }
+}
