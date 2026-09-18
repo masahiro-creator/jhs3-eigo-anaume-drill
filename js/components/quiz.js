@@ -59,9 +59,9 @@ export function renderQuizScreen({ question, index, total, picked }) {
 
   return `
     <div class="progress"><i style="width:${progressPct}%"></i></div>
-    <div class="meta">
-      <span class="grade-chip ${gradeChipClass}">中${question.grade}</span>${escapeHtml(question.category)}
-      　${index + 1} / ${total}問
+    <div class="meta" style="display:flex; justify-content:space-between; align-items:center">
+      <span><span class="grade-chip ${gradeChipClass}">中${question.grade}</span>${escapeHtml(question.category)}　${index + 1} / ${total}問</span>
+      <button class="link" type="button" data-action="quit-quiz" style="padding:2px">✕ やめる</button>
     </div>
     <div class="card"><p class="en" style="margin:6px 0 4px">${renderSentenceWithBlank(question.sentence)}</p></div>
     <div id="choices">${choicesHtml}</div>

@@ -47,9 +47,9 @@ export function renderVocabQuizScreen({ word, index, total, picked, choices, cor
 
   return `
     <div class="progress"><i style="width:${progressPct}%"></i></div>
-    <div class="meta">
-      <span class="grade-chip g${word.grade}">中${word.grade}</span>${escapeHtml(word.category)}
-      　${index + 1} / ${total}語
+    <div class="meta" style="display:flex; justify-content:space-between; align-items:center">
+      <span><span class="grade-chip g${word.grade}">中${word.grade}</span>${escapeHtml(word.category)}　${index + 1} / ${total}語</span>
+      <button class="link" type="button" data-action="quit-quiz" style="padding:2px">✕ やめる</button>
     </div>
     <div class="card" style="text-align:center">
       <p class="en" style="margin:6px 0 4px; font-size:30px">${escapeHtml(word.word)}</p>

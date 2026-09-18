@@ -69,7 +69,6 @@ export function renderHomeScreen({
     <div class="card">
       <div class="meta">🧠 覚え直しの段階（${learnedCount}/${totalQuestions}${unitLabel}を学習中）</div>
       <div class="stages">${stagesHtml}</div>
-      <p class="meta" style="margin:12px 0 0">正解して理由も言えた問題は、右の段階へ進むよ。間違えた問題は最初に戻るよ。</p>
     </div>
 
     <div class="card">

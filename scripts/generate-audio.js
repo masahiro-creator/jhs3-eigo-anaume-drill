@@ -26,7 +26,7 @@ if (!API_KEY) {
   process.exit(1);
 }
 
-const VOICE_NAME = process.env.TTS_VOICE_NAME || "en-US-Neural2-F";
+const VOICE_NAME = process.env.TTS_VOICE_NAME || "en-GB-Neural2-A";
 const LANGUAGE_CODE = VOICE_NAME.startsWith("en-GB") ? "en-GB" : "en-US";
 const OUT_DIR = path.join(ROOT, "audio");
 const MANIFEST_PATH = path.join(ROOT, "js", "data", "audioManifest.js");
@@ -58,7 +58,12 @@ async function main() {
     const fileName = `${sanitizeKey(target.key)}.mp3`;
     const filePath = path.join(OUT_DIR, fileName);
 
-    if (manifest[target.key] && manifest[target.key].text === target.text && existsSync(filePath)) {
+    if (
+      manifest[target.key] &&
+      manifest[target.key].text === target.text &&
+      manifest[target.key].voice === VOICE_NAME &&
+      existsSync(filePath)
+    ) {
       skipped++;
       continue;
     }
@@ -66,7 +71,7 @@ async function main() {
     try {
       const audioContentBase64 = await synthesize(target.text);
       writeFileSync(filePath, Buffer.from(audioContentBase64, "base64"));
-      manifest[target.key] = { text: target.text, file: `audio/${fileName}` };
+      manifest[target.key] = { text: target.text, file: `audio/${fileName}`, voice: VOICE_NAME };
       generated++;
       if (generated % 50 === 0) {
         console.log(`生成中... ${generated}件完了`);

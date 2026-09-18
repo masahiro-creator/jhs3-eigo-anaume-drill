@@ -18,7 +18,7 @@ import {
 import { loadProgress, saveProgress, STORAGE_KEYS } from "./lib/storage.js";
 import { loadHistory, saveHistory, recordAnswer } from "./lib/historyLog.js";
 import { pickDistractors } from "./lib/distractors.js";
-import { speak } from "./lib/speech.js";
+import { speak, loadPlaybackRate, savePlaybackRate } from "./lib/speech.js";
 import { loadStreak, saveStreak, updateStreak } from "./lib/streak.js";
 import { loadThemeId, saveThemeId, applyTheme } from "./lib/theme.js";
 import { triggerConfetti } from "./lib/confetti.js";
@@ -62,6 +62,7 @@ let history = loadHistory();
 let streak = loadStreak();
 let themeId = loadThemeId();
 applyTheme(themeId);
+let playbackRate = loadPlaybackRate();
 
 let mode = "grammar";
 let screen = "menu";
@@ -112,6 +113,7 @@ function render() {
       streakCount: streak.count,
       cheerMessage: pickCheerMessage(todayString()),
       themeId,
+      playbackRate,
     });
   } else if (screen === "home") {
     const deck = currentDeck();
@@ -209,6 +211,21 @@ function pickChoice(index) {
   if (picked !== null) return;
   picked = index;
   render();
+
+  const item = session[idx];
+  if (mode === "grammar") {
+    speak(item.sentence.replace("___", item.choices[item.answer]));
+  } else {
+    speak(item.word);
+  }
+}
+
+function quitQuiz() {
+  session = [];
+  idx = 0;
+  picked = null;
+  screen = "home";
+  render();
 }
 
 function gradeAnswer(outcome) {
@@ -252,6 +269,12 @@ function setTheme(id) {
   render();
 }
 
+function setRate(rate) {
+  playbackRate = rate;
+  savePlaybackRate(playbackRate);
+  render();
+}
+
 app.addEventListener("click", (event) => {
   const target = event.target.closest("[data-action]");
   if (!target) return;
@@ -260,6 +283,8 @@ app.addEventListener("click", (event) => {
   else if (action === "start-weak") startWeakSession();
   else if (action === "set-new-per-day") setNewPerDay(Number(target.dataset.value));
   else if (action === "set-theme") setTheme(target.dataset.theme);
+  else if (action === "set-rate") setRate(Number(target.dataset.rate));
+  else if (action === "quit-quiz") quitQuiz();
   else if (action === "go-stats") {
     screen = "stats";
     render();
