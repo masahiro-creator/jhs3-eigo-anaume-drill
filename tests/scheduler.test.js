@@ -15,6 +15,8 @@ import {
   applyAnswer,
   computeStageCounts,
   computeCategoryStats,
+  computeMasteredCount,
+  getWeakItems,
 } from "../js/lib/scheduler.js";
 
 const noShuffle = (arr) => [...arr];
@@ -199,4 +201,36 @@ test("computeCategoryStats: 正答率の低い順に並べ、未回答の分野�
   assert.equal(stats[0].correct, 4);
   assert.equal(stats[0].rate, 0.5);
   assert.equal(stats[1].rate, 1);
+});
+
+test("computeMasteredCount: box がしきい値(既定3)以上のカード数を数える", () => {
+  const progress = {
+    ...createInitialProgress(),
+    cards: {
+      a: { box: 3, due: "x", seen: 1, correct: 1 },
+      b: { box: 5, due: "x", seen: 1, correct: 1 },
+      c: { box: 2, due: "x", seen: 1, correct: 1 },
+    },
+  };
+  assert.equal(computeMasteredCount(progress), 2);
+});
+
+test("getWeakItems: 誤答歴のある項目だけを誤答数の多い順に返す", () => {
+  const questions = makeQuestions(["a", "b", "c", "d"]);
+  const progress = {
+    ...createInitialProgress(),
+    cards: {
+      a: { box: 1, due: "x", seen: 5, correct: 2 }, // wrong 3
+      b: { box: 1, due: "x", seen: 3, correct: 3 }, // wrong 0 (除外)
+      c: { box: 1, due: "x", seen: 4, correct: 3 }, // wrong 1
+      // d は未回答（除外）
+    },
+  };
+  const weak = getWeakItems(questions, progress);
+  assert.deepEqual(
+    weak.map((w) => w.id),
+    ["a", "c"]
+  );
+  assert.equal(weak[0].wrongCount, 3);
+  assert.equal(weak[1].wrongCount, 1);
 });

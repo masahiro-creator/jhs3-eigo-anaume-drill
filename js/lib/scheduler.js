@@ -180,3 +180,22 @@ export function computeCategoryStats(questions, progress) {
     }))
     .sort((a, b) => a.rate - b.rate);
 }
+
+/**
+ * 誤答歴のある項目（弱点）を、誤答数の多い順に並べて返す。
+ * @param {{id:string}[]} items
+ * @param {Progress} progress
+ * @returns {({id:string, wrongCount:number})[]}
+ */
+export function getWeakItems(items, progress) {
+  return items
+    .map((item) => {
+      const card = progress.cards[item.id];
+      if (!card || card.seen === 0) return null;
+      const wrongCount = card.seen - card.correct;
+      if (wrongCount <= 0) return null;
+      return { ...item, wrongCount };
+    })
+    .filter((x) => x !== null)
+    .sort((a, b) => b.wrongCount - a.wrongCount);
+}

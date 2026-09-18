@@ -6,7 +6,7 @@ const STAGE_LABELS = ["1日後", "3日後", "7日後", "14日後", "30日後"];
  * @param {{
  *   dueCount:number, freshCount:number, stageCounts:number[], learnedCount:number,
  *   newPerDay:number, totalQuestions:number, deckTitle:string, deckEmoji:string,
- *   unitLabel:string, subtitle:string, newUnitLabel:string
+ *   unitLabel:string, subtitle:string, newUnitLabel:string, weakCount:number
  * }} props
  */
 export function renderHomeScreen({
@@ -21,6 +21,7 @@ export function renderHomeScreen({
   unitLabel,
   subtitle,
   newUnitLabel,
+  weakCount,
 }) {
   const hasWork = dueCount + freshCount > 0;
   const targetCount = dueCount + freshCount;
@@ -75,6 +76,15 @@ export function renderHomeScreen({
       <div class="meta" style="margin-bottom:6px">📚 1日に出す新しい${unitLabel}</div>
       <div class="row">${newPerDayHtml}</div>
     </div>
+
+    ${
+      weakCount > 0
+        ? `<div class="card">
+             <div class="meta" style="margin-bottom:8px">🎯 弱点克服モード（間違えたことがある${unitLabel}：${weakCount}${unitLabel}）</div>
+             <button class="btn ghost" data-action="start-weak">🎯 弱点だけ集中特訓</button>
+           </div>`
+        : ""
+    }
 
     <div class="foot">
       <button class="link" data-action="go-stats">📊 分野ごとの成績を見る</button>

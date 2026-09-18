@@ -554,14 +554,90 @@ td.r {
   animation: fade-slide-in 0.25s ease-out;
 }
 
+.confetti-container {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 999;
+  overflow: hidden;
+}
+
+.confetti-piece {
+  position: absolute;
+  top: -12px;
+  width: 8px;
+  height: 14px;
+  border-radius: 2px;
+  animation-name: confetti-fall;
+  animation-timing-function: ease-in;
+  animation-fill-mode: forwards;
+}
+
+@keyframes confetti-fall {
+  0% { transform: translate(0, 0) rotate(0deg); opacity: 1; }
+  100% { transform: translate(var(--drift, 0px), 100vh) rotate(360deg); opacity: 0.7; }
+}
+
+/* 応援バナー */
+.cheer-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--violet-soft);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  margin-bottom: 14px;
+  font-size: 13px;
+}
+
+.cheer-banner .emoji {
+  font-size: 20px;
+}
+
+/* テーマカラー選択 */
+.theme-picker {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.theme-swatch {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  padding: 0;
+}
+
+.theme-swatch.selected {
+  border-color: var(--ink);
+}
+
+.streak-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(255, 255, 255, 0.25);
+  border-radius: 999px;
+  padding: 3px 10px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #fff;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .choice.correct,
   .choice.picked-wrong,
   .answer-block,
   .btn,
-  .choice {
+  .choice,
+  .confetti-piece {
     animation: none !important;
     transition: none !important;
+  }
+  .confetti-container {
+    display: none;
   }
 }
 

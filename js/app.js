@@ -12,12 +12,17 @@ import {
   computeStageCounts,
   computeCategoryStats,
   computeMasteredCount,
+  getWeakItems,
   shuffleArray,
 } from "./lib/scheduler.js";
 import { loadProgress, saveProgress, STORAGE_KEYS } from "./lib/storage.js";
 import { loadHistory, saveHistory, recordAnswer } from "./lib/historyLog.js";
 import { pickDistractors } from "./lib/distractors.js";
 import { speak } from "./lib/speech.js";
+import { loadStreak, saveStreak, updateStreak } from "./lib/streak.js";
+import { loadThemeId, saveThemeId, applyTheme } from "./lib/theme.js";
+import { triggerConfetti } from "./lib/confetti.js";
+import { pickCheerMessage } from "./data/cheerMessages.js";
 import { renderMenuScreen } from "./components/menu.js";
 import { renderHomeScreen } from "./components/home.js";
 import { renderQuizScreen } from "./components/quiz.js";
@@ -54,6 +59,9 @@ let progressByDeck = {
   words: loadProgress(DECKS.words.storageKey),
 };
 let history = loadHistory();
+let streak = loadStreak();
+let themeId = loadThemeId();
+applyTheme(themeId);
 
 let mode = "grammar";
 let screen = "menu";
@@ -63,6 +71,7 @@ let picked = null;
 let runStats = { sure: 0, guess: 0, miss: 0 };
 let currentChoices = [];
 let currentCorrectIndex = -1;
+let isWeakSession = false;
 
 function currentDeck() {
   return DECKS[mode];
@@ -100,6 +109,9 @@ function render() {
         unitLabel: deck.unitLabel,
         ...deckDueFresh(key),
       })),
+      streakCount: streak.count,
+      cheerMessage: pickCheerMessage(todayString()),
+      themeId,
     });
   } else if (screen === "home") {
     const deck = currentDeck();
@@ -117,6 +129,7 @@ function render() {
       unitLabel: deck.unitLabel,
       newUnitLabel: deck.newUnitLabel,
       subtitle: deck.subtitle(deck.items.length),
+      weakCount: getWeakItems(deck.items, progress).length,
     });
   } else if (screen === "quiz") {
     if (mode === "grammar") {
@@ -165,21 +178,31 @@ function goGraph() {
   render();
 }
 
-function startSession() {
-  const today = todayString();
-  progressByDeck[mode] = resetDailyCountIfNeeded(currentProgress(), today);
-  session = buildSession(currentDeck().items, currentProgress(), today);
-  if (session.length === 0) {
+function beginQuiz(items) {
+  if (items.length === 0) {
     screen = "home";
     render();
     return;
   }
+  session = items;
   idx = 0;
   picked = null;
   runStats = { sure: 0, guess: 0, miss: 0 };
   if (mode === "words") prepareVocabChoices();
   screen = "quiz";
   render();
+}
+
+function startSession() {
+  const today = todayString();
+  progressByDeck[mode] = resetDailyCountIfNeeded(currentProgress(), today);
+  isWeakSession = false;
+  beginQuiz(buildSession(currentDeck().items, currentProgress(), today));
+}
+
+function startWeakSession() {
+  isWeakSession = true;
+  beginQuiz(shuffleArray(getWeakItems(currentDeck().items, currentProgress())));
 }
 
 function pickChoice(index) {
@@ -198,8 +221,13 @@ function gradeAnswer(outcome) {
   history = recordAnswer(history, today, masteredTotal);
   saveHistory(history);
 
+  streak = updateStreak(streak, today);
+  saveStreak(streak);
+
+  if (outcome !== "miss") triggerConfetti();
+
   runStats[outcome]++;
-  session = requeueOnMiss(session, idx, outcome);
+  if (!isWeakSession) session = requeueOnMiss(session, idx, outcome);
 
   idx++;
   picked = null;
@@ -217,12 +245,21 @@ function setNewPerDay(value) {
   render();
 }
 
+function setTheme(id) {
+  themeId = id;
+  saveThemeId(themeId);
+  applyTheme(themeId);
+  render();
+}
+
 app.addEventListener("click", (event) => {
   const target = event.target.closest("[data-action]");
   if (!target) return;
   const action = target.dataset.action;
   if (action === "start") startSession();
+  else if (action === "start-weak") startWeakSession();
   else if (action === "set-new-per-day") setNewPerDay(Number(target.dataset.value));
+  else if (action === "set-theme") setTheme(target.dataset.theme);
   else if (action === "go-stats") {
     screen = "stats";
     render();
