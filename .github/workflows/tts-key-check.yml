@@ -1,0 +1,43 @@
+name: Check Google TTS API Key
+
+on:
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Test Google Cloud TTS API key
+        env:
+          GOOGLE_TTS_API_KEY: ${{ secrets.GOOGLE_TTS_API_KEY }}
+        run: |
+          if [ -z "$GOOGLE_TTS_API_KEY" ]; then
+            echo "::error::GOOGLE_TTS_API_KEY シークレットが設定されていません。"
+            exit 1
+          fi
+
+          HTTP_STATUS=$(curl -s -o response.json -w "%{http_code}" \
+            -X POST \
+            "https://texttospeech.googleapis.com/v1/text:synthesize?key=${GOOGLE_TTS_API_KEY}" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "input": {"text": "This is a test."},
+              "voice": {"languageCode": "en-US", "name": "en-US-Neural2-F"},
+              "audioConfig": {"audioEncoding": "MP3"}
+            }')
+
+          echo "HTTP status: $HTTP_STATUS"
+
+          if [ "$HTTP_STATUS" = "200" ]; then
+            if grep -q '"audioContent"' response.json; then
+              echo "OK: APIキーは有効です。音声データを正常に取得できました。"
+            else
+              echo "::error::200が返りましたが、想定した音声データが含まれていませんでした。"
+              exit 1
+            fi
+          else
+            echo "::error::APIキーが無効か、Text-to-Speech APIが有効になっていない可能性があります(HTTP $HTTP_STATUS)。"
+            # エラー内容を表示（レスポンスにキーの値は含まれない）
+            cat response.json
+            exit 1
+          fi
