@@ -1,0 +1,35 @@
+name: Generate Audio (Google Cloud TTS)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Generate audio
+        env:
+          GOOGLE_TTS_API_KEY: ${{ secrets.GOOGLE_TTS_API_KEY }}
+        run: node scripts/generate-audio.js
+
+      - name: Commit generated audio
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add audio/ js/data/audioManifest.js
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+          else
+            git commit -m "音声ファイルを自動生成 (Google Cloud TTS)"
+            git push
+          fi
