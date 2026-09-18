@@ -1,4 +1,5 @@
 import { QUESTIONS } from "./data/questions.js";
+import { WORDS } from "./data/words.js";
 import {
   todayString,
   resetDailyCountIfNeeded,
@@ -10,54 +11,164 @@ import {
   countRemainingNewSlots,
   computeStageCounts,
   computeCategoryStats,
+  computeMasteredCount,
+  shuffleArray,
 } from "./lib/scheduler.js";
-import { loadProgress, saveProgress } from "./lib/storage.js";
+import { loadProgress, saveProgress, STORAGE_KEYS } from "./lib/storage.js";
+import { loadHistory, saveHistory, recordAnswer } from "./lib/historyLog.js";
+import { pickDistractors } from "./lib/distractors.js";
+import { speak } from "./lib/speech.js";
+import { renderMenuScreen } from "./components/menu.js";
 import { renderHomeScreen } from "./components/home.js";
 import { renderQuizScreen } from "./components/quiz.js";
+import { renderVocabQuizScreen } from "./components/vocabQuiz.js";
 import { renderStatsScreen } from "./components/stats.js";
 import { renderDoneScreen } from "./components/done.js";
+import { renderGraphScreen } from "./components/graph.js";
 
 const app = document.getElementById("app");
 
-let progress = loadProgress();
-let screen = "home";
+const DECKS = {
+  grammar: {
+    items: QUESTIONS,
+    storageKey: STORAGE_KEYS.grammar,
+    title: "空所補充ドリル",
+    emoji: "✏️",
+    unitLabel: "問",
+    newUnitLabel: "問",
+    subtitle: (n) => `中1〜中3の文法 ${n}問 ／ 忘れかけた頃にまた出てくる仕組みだよ`,
+  },
+  words: {
+    items: WORDS,
+    storageKey: STORAGE_KEYS.words,
+    title: "単語ドリル",
+    emoji: "📚",
+    unitLabel: "語",
+    newUnitLabel: "語",
+    subtitle: (n) => `中1〜中3の単語 ${n}語 ／ 忘れかけた頃にまた出てくる仕組みだよ`,
+  },
+};
+
+let progressByDeck = {
+  grammar: loadProgress(DECKS.grammar.storageKey),
+  words: loadProgress(DECKS.words.storageKey),
+};
+let history = loadHistory();
+
+let mode = "grammar";
+let screen = "menu";
 let session = [];
 let idx = 0;
 let picked = null;
 let runStats = { sure: 0, guess: 0, miss: 0 };
+let currentChoices = [];
+let currentCorrectIndex = -1;
+
+function currentDeck() {
+  return DECKS[mode];
+}
+
+function currentProgress() {
+  return progressByDeck[mode];
+}
+
+function deckDueFresh(deckKey) {
+  const deck = DECKS[deckKey];
+  const progress = progressByDeck[deckKey];
+  const today = todayString();
+  return {
+    dueCount: getDueQuestions(deck.items, progress, today).length,
+    freshCount: Math.min(getUnseenQuestions(deck.items, progress).length, countRemainingNewSlots(progress)),
+  };
+}
+
+function prepareVocabChoices() {
+  const word = session[idx];
+  const distractors = pickDistractors(WORDS, word, 3);
+  const choices = shuffleArray([word.meaning, ...distractors.map((d) => d.meaning)]);
+  currentChoices = choices;
+  currentCorrectIndex = choices.indexOf(word.meaning);
+}
 
 function render() {
-  if (screen === "home") {
-    const today = todayString();
+  if (screen === "menu") {
+    app.innerHTML = renderMenuScreen({
+      decks: Object.entries(DECKS).map(([key, deck]) => ({
+        key,
+        title: deck.title,
+        emoji: deck.emoji,
+        unitLabel: deck.unitLabel,
+        ...deckDueFresh(key),
+      })),
+    });
+  } else if (screen === "home") {
+    const deck = currentDeck();
+    const progress = currentProgress();
+    const { dueCount, freshCount } = deckDueFresh(mode);
     app.innerHTML = renderHomeScreen({
-      dueCount: getDueQuestions(QUESTIONS, progress, today).length,
-      freshCount: Math.min(getUnseenQuestions(QUESTIONS, progress).length, countRemainingNewSlots(progress)),
+      dueCount,
+      freshCount,
       stageCounts: computeStageCounts(progress),
       learnedCount: Object.keys(progress.cards).length,
       newPerDay: progress.newPerDay,
-      totalQuestions: QUESTIONS.length,
+      totalQuestions: deck.items.length,
+      deckTitle: deck.title,
+      deckEmoji: deck.emoji,
+      unitLabel: deck.unitLabel,
+      newUnitLabel: deck.newUnitLabel,
+      subtitle: deck.subtitle(deck.items.length),
     });
   } else if (screen === "quiz") {
-    const question = session[idx];
-    app.innerHTML = renderQuizScreen({ question, index: idx, total: session.length, picked });
+    if (mode === "grammar") {
+      const question = session[idx];
+      app.innerHTML = renderQuizScreen({ question, index: idx, total: session.length, picked });
+    } else {
+      const word = session[idx];
+      app.innerHTML = renderVocabQuizScreen({
+        word,
+        index: idx,
+        total: session.length,
+        picked,
+        choices: currentChoices,
+        correctIndex: currentCorrectIndex,
+      });
+    }
     if (picked !== null) {
       window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
     }
   } else if (screen === "stats") {
-    app.innerHTML = renderStatsScreen({ stats: computeCategoryStats(QUESTIONS, progress) });
+    app.innerHTML = renderStatsScreen({ stats: computeCategoryStats(currentDeck().items, currentProgress()) });
   } else if (screen === "done") {
     app.innerHTML = renderDoneScreen({
       sureCount: runStats.sure,
       guessCount: runStats.guess,
       missCount: runStats.miss,
     });
+  } else if (screen === "graph") {
+    app.innerHTML = renderGraphScreen({ history });
   }
+}
+
+function goMenu() {
+  screen = "menu";
+  render();
+}
+
+function goDeck(deckKey) {
+  mode = deckKey;
+  screen = "home";
+  render();
+}
+
+function goGraph() {
+  screen = "graph";
+  render();
 }
 
 function startSession() {
   const today = todayString();
-  progress = resetDailyCountIfNeeded(progress, today);
-  session = buildSession(QUESTIONS, progress, today);
+  progressByDeck[mode] = resetDailyCountIfNeeded(currentProgress(), today);
+  session = buildSession(currentDeck().items, currentProgress(), today);
   if (session.length === 0) {
     screen = "home";
     render();
@@ -66,6 +177,7 @@ function startSession() {
   idx = 0;
   picked = null;
   runStats = { sure: 0, guess: 0, miss: 0 };
+  if (mode === "words") prepareVocabChoices();
   screen = "quiz";
   render();
 }
@@ -78,21 +190,30 @@ function pickChoice(index) {
 
 function gradeAnswer(outcome) {
   const today = todayString();
-  const question = session[idx];
-  progress = applyAnswer(progress, question.id, outcome, today);
-  saveProgress(progress);
+  const item = session[idx];
+  progressByDeck[mode] = applyAnswer(currentProgress(), item.id, outcome, today);
+  saveProgress(currentDeck().storageKey, currentProgress());
+
+  const masteredTotal = computeMasteredCount(progressByDeck.grammar) + computeMasteredCount(progressByDeck.words);
+  history = recordAnswer(history, today, masteredTotal);
+  saveHistory(history);
+
   runStats[outcome]++;
   session = requeueOnMiss(session, idx, outcome);
 
   idx++;
   picked = null;
-  screen = idx >= session.length ? "done" : "quiz";
+  if (idx >= session.length) {
+    screen = "done";
+  } else {
+    if (mode === "words") prepareVocabChoices();
+  }
   render();
 }
 
 function setNewPerDay(value) {
-  progress = { ...progress, newPerDay: value };
-  saveProgress(progress);
+  progressByDeck[mode] = { ...currentProgress(), newPerDay: value };
+  saveProgress(currentDeck().storageKey, currentProgress());
   render();
 }
 
@@ -108,8 +229,12 @@ app.addEventListener("click", (event) => {
   } else if (action === "go-home") {
     screen = "home";
     render();
-  } else if (action === "pick") pickChoice(Number(target.dataset.index));
+  } else if (action === "go-menu") goMenu();
+  else if (action === "go-deck") goDeck(target.dataset.deck);
+  else if (action === "go-graph") goGraph();
+  else if (action === "pick") pickChoice(Number(target.dataset.index));
   else if (action === "grade") gradeAnswer(target.dataset.outcome);
+  else if (action === "speak") speak(target.dataset.text);
 });
 
 document.addEventListener("keydown", (event) => {

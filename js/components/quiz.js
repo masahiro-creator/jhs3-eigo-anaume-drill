@@ -30,13 +30,15 @@ export function renderQuizScreen({ question, index, total, picked }) {
     })
     .join("");
 
+  const fullSentence = question.sentence.replace("___", question.choices[question.answer]);
+
   const answerBlockHtml = !answered
     ? ""
     : `
     <div class="card answer-block" style="margin-top:14px">
       <p class="verdict ${isCorrect ? "ok" : "ng"}">${isCorrect ? "🎉 正解！" : "💡 不正解"}</p>
       <span class="point">問われているもの：${escapeHtml(question.point)}</span>
-      <p class="en" style="margin:0 0 2px">${renderCompletedSentenceWithMarkers(question)}</p>
+      <p class="en" style="margin:0 0 2px">${renderCompletedSentenceWithMarkers(question)} <button class="link" type="button" data-action="speak" data-text="${escapeHtml(fullSentence)}" title="音声を再生">🔊</button></p>
       <p class="jp">${escapeHtml(question.translation)}</p>
       <p style="margin:12px 0 0; font-size:14px">${escapeHtml(question.explanation)}</p>
       <p class="meta clue-label">根拠になる語：${escapeHtml(question.clue)}</p>

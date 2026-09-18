@@ -152,6 +152,14 @@ export function computeStageCounts(progress) {
   return counts;
 }
 
+/** 「定着」とみなす box のしきい値（7日後の段階まで到達） */
+export const MASTERED_BOX_THRESHOLD = 3;
+
+/** 定着済み（box が しきい値以上）のカード数 */
+export function computeMasteredCount(progress, threshold = MASTERED_BOX_THRESHOLD) {
+  return Object.values(progress.cards).filter((card) => card.box >= threshold).length;
+}
+
 /** 分野ごとの正答率を低い順に並べる。未回答の分野は含めない。 */
 export function computeCategoryStats(questions, progress) {
   const byCategory = new Map();

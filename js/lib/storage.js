@@ -1,16 +1,20 @@
 import { createInitialProgress, resetDailyCountIfNeeded, todayString, NEW_PER_DAY_OPTIONS } from "./scheduler.js";
 
-const STORAGE_KEY = "jhs3-eigo-anaume-progress";
+export const STORAGE_KEYS = {
+  grammar: "jhs3-eigo-anaume-progress",
+  words: "jhs3-eigo-anaume-progress-words",
+};
 
 /**
  * localStorage から進捗を読み込む。壊れたJSONや未知のバージョンでも
  * 例外を投げず、初期状態にフォールバックする。
+ * @param {string} storageKey
  * @returns {import('./scheduler.js').Progress}
  */
-export function loadProgress() {
+export function loadProgress(storageKey) {
   let progress = createInitialProgress();
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(storageKey);
     if (raw) {
       const parsed = JSON.parse(raw);
       if (isValidProgressShape(parsed)) {
@@ -39,10 +43,13 @@ function isValidProgressShape(value) {
   );
 }
 
-/** @param {import('./scheduler.js').Progress} progress */
-export function saveProgress(progress) {
+/**
+ * @param {string} storageKey
+ * @param {import('./scheduler.js').Progress} progress
+ */
+export function saveProgress(storageKey, progress) {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(progress));
+    localStorage.setItem(storageKey, JSON.stringify(progress));
   } catch {
     // 保存に失敗しても（プライベートブラウズ等）アプリの続行を優先する
   }
