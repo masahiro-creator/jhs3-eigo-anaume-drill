@@ -7,6 +7,17 @@ const GRADE_TABS = [
   { value: "3", label: "中3" },
 ];
 
+export const WORDLIST_PAGE_SIZE = 100;
+
+export function filterWords(words, gradeFilter, query) {
+  const q = query.trim().toLowerCase();
+  return words.filter((w) => {
+    if (gradeFilter !== "all" && String(w.grade) !== gradeFilter) return false;
+    if (q && !w.word.toLowerCase().includes(q) && !w.meaning.includes(q)) return false;
+    return true;
+  });
+}
+
 function statusFor(card) {
   if (!card || card.seen === 0) return { label: "未学習", cls: "" };
   if (card.box >= 3) return { label: "定着", cls: "high" };
@@ -14,16 +25,11 @@ function statusFor(card) {
 }
 
 /**
- * 単語一覧画面。学年で絞り込み・キーワード検索ができる。
- * @param {{words: import('../data/words.js').WordItem[], progress: import('../lib/scheduler.js').Progress, gradeFilter:string, query:string}} props
+ * 単語一覧画面。学年で絞り込み・キーワード検索ができる。スクロールで追加読み込み。
+ * @param {{words: import('../data/words.js').WordItem[], progress: import('../lib/scheduler.js').Progress, gradeFilter:string, query:string, visibleCount:number}} props
  */
-export function renderWordListScreen({ words, progress, gradeFilter, query }) {
-  const q = query.trim().toLowerCase();
-  const filtered = words.filter((w) => {
-    if (gradeFilter !== "all" && String(w.grade) !== gradeFilter) return false;
-    if (q && !w.word.toLowerCase().includes(q) && !w.meaning.includes(q)) return false;
-    return true;
-  });
+export function renderWordListScreen({ words, progress, gradeFilter, query, visibleCount }) {
+  const filtered = filterWords(words, gradeFilter, query);
 
   const tabsHtml = GRADE_TABS.map(
     (t) => `
@@ -31,8 +37,7 @@ export function renderWordListScreen({ words, progress, gradeFilter, query }) {
         data-action="set-wordlist-grade" data-grade="${t.value}">${t.label}</button>`
   ).join("");
 
-  const MAX_ROWS = 300;
-  const rows = filtered.slice(0, MAX_ROWS);
+  const rows = filtered.slice(0, visibleCount);
   const rowsHtml = rows.length
     ? rows
         .map((w) => {
@@ -41,16 +46,19 @@ export function renderWordListScreen({ words, progress, gradeFilter, query }) {
         <tr>
           <td><span class="grade-chip g${w.grade}">中${w.grade}</span></td>
           <td class="en" style="font-size:16px">${escapeHtml(w.word)}</td>
+          <td><button class="link" type="button" data-action="speak" data-text="${escapeHtml(w.word)}" title="発音を聞く" style="padding:2px 6px">🔊</button></td>
           <td>${escapeHtml(w.meaning)}</td>
           <td class="r">${status.label ? `<span class="stat-emoji">${status.cls === "high" ? "🟢" : status.cls === "mid" ? "🟡" : "⚪"}</span>${status.label}` : ""}</td>
         </tr>`;
         })
         .join("")
-    : `<tr><td colspan="4"><p class="meta" style="margin:8px 0">見つかりませんでした。</p></td></tr>`;
+    : `<tr><td colspan="5"><p class="meta" style="margin:8px 0">見つかりませんでした。</p></td></tr>`;
 
-  const moreNoticeHtml =
-    filtered.length > MAX_ROWS
-      ? `<p class="meta" style="margin:10px 0 0">他 ${filtered.length - MAX_ROWS}語あります。検索で絞り込んでね。</p>`
+  const hasMore = filtered.length > rows.length;
+  const footerHtml = hasMore
+    ? `<div id="wordlist-sentinel" class="meta" style="text-align:center; padding:14px 0">読み込み中…（${rows.length}/${filtered.length}語）</div>`
+    : filtered.length > 0
+      ? `<p class="meta" style="text-align:center; padding:10px 0">これで全${filtered.length}語だよ</p>`
       : "";
 
   return `
@@ -67,7 +75,7 @@ export function renderWordListScreen({ words, progress, gradeFilter, query }) {
 
     <div class="card" style="overflow-x:auto">
       <table>${rowsHtml}</table>
-      ${moreNoticeHtml}
+      ${footerHtml}
     </div>
   `;
 }

@@ -30,7 +30,7 @@ import { renderVocabQuizScreen } from "./components/vocabQuiz.js";
 import { renderStatsScreen } from "./components/stats.js";
 import { renderDoneScreen } from "./components/done.js";
 import { renderGraphScreen } from "./components/graph.js";
-import { renderWordListScreen } from "./components/wordList.js";
+import { renderWordListScreen, filterWords, WORDLIST_PAGE_SIZE } from "./components/wordList.js";
 
 const app = document.getElementById("app");
 
@@ -76,6 +76,8 @@ let currentCorrectIndex = -1;
 let isWeakSession = false;
 let wordListGrade = "all";
 let wordListQuery = "";
+let wordListVisibleCount = WORDLIST_PAGE_SIZE;
+let wordListObserver = null;
 
 function currentDeck() {
   return DECKS[mode];
@@ -171,13 +173,29 @@ function render() {
       progress: progressByDeck.words,
       gradeFilter: wordListGrade,
       query: wordListQuery,
+      visibleCount: wordListVisibleCount,
     });
     const searchInput = document.getElementById("wordlist-search");
     if (searchInput) {
       searchInput.focus();
       searchInput.setSelectionRange(searchInput.value.length, searchInput.value.length);
     }
+    if (wordListObserver) wordListObserver.disconnect();
+    const sentinel = document.getElementById("wordlist-sentinel");
+    if (sentinel) {
+      wordListObserver = new IntersectionObserver((entries) => {
+        if (entries.some((e) => e.isIntersecting)) loadMoreWordList();
+      });
+      wordListObserver.observe(sentinel);
+    }
   }
+}
+
+function loadMoreWordList() {
+  const total = filterWords(WORDS, wordListGrade, wordListQuery).length;
+  if (wordListVisibleCount >= total) return;
+  wordListVisibleCount = Math.min(wordListVisibleCount + WORDLIST_PAGE_SIZE, total);
+  render();
 }
 
 function goMenu() {
@@ -198,11 +216,13 @@ function goGraph() {
 
 function goWordList() {
   screen = "wordlist";
+  wordListVisibleCount = WORDLIST_PAGE_SIZE;
   render();
 }
 
 function setWordListGrade(grade) {
   wordListGrade = grade;
+  wordListVisibleCount = WORDLIST_PAGE_SIZE;
   render();
 }
 
@@ -330,6 +350,7 @@ app.addEventListener("click", (event) => {
 app.addEventListener("input", (event) => {
   if (event.target.id === "wordlist-search") {
     wordListQuery = event.target.value;
+    wordListVisibleCount = WORDLIST_PAGE_SIZE;
     render();
   }
 });
