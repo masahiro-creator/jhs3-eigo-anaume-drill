@@ -6,7 +6,7 @@ const STAGE_LABELS = ["1日後", "3日後", "7日後", "14日後", "30日後"];
  * @param {{
  *   dueCount:number, freshCount:number, stageCounts:number[], learnedCount:number,
  *   newPerDay:number, totalQuestions:number, deckTitle:string, deckEmoji:string,
- *   unitLabel:string, subtitle:string, newUnitLabel:string, weakCount:number
+ *   unitLabel:string, subtitle:string, newUnitLabel:string, weakCount:number, hasWordList:boolean
  * }} props
  */
 export function renderHomeScreen({
@@ -22,9 +22,9 @@ export function renderHomeScreen({
   subtitle,
   newUnitLabel,
   weakCount,
+  hasWordList,
 }) {
   const hasWork = dueCount + freshCount > 0;
-  const targetCount = dueCount + freshCount;
 
   const stagesHtml = STAGE_LABELS.map(
     (label, i) => `
@@ -52,13 +52,12 @@ export function renderHomeScreen({
           <span class="num">${dueCount}<small>${unitLabel}</small></span><span class="numlabel">🔁 今日の復習</span>
         </div>
         <div class="today-tile">
-          <span class="num">${freshCount}<small>${unitLabel}</small></span><span class="numlabel">✨ はじめての${unitLabel}</span>
+          <span class="num">${freshCount}<small>${unitLabel}</small></span><span class="numlabel">🎯 今日の目標語数 のこり（目標${newPerDay}${unitLabel}）</span>
         </div>
       </div>
       ${
         hasWork
-          ? `<p class="meta" style="margin:10px 0 0">🎯 今日の目安：${targetCount}${unitLabel}</p>
-             <button class="btn" style="margin-top:10px" data-action="start">🚀 はじめる</button>`
+          ? `<button class="btn" style="margin-top:10px" data-action="start">🚀 はじめる</button>`
           : `<div class="empty-state" style="margin-top:14px">
                <span class="emoji">🎉</span>
                <p class="meta" style="margin:0">今日の分は終わったよ！また明日会おうね。</p>
@@ -87,6 +86,7 @@ export function renderHomeScreen({
 
     <div class="foot">
       <button class="link" data-action="go-stats">📊 分野ごとの成績を見る</button>
+      ${hasWordList ? `<button class="link" data-action="go-wordlist">📖 単語一覧を見る</button>` : ""}
       <button class="link" data-action="go-graph">📈 これまでの記録を見る</button>
     </div>
   `;

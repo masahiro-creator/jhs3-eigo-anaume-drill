@@ -30,6 +30,7 @@ import { renderVocabQuizScreen } from "./components/vocabQuiz.js";
 import { renderStatsScreen } from "./components/stats.js";
 import { renderDoneScreen } from "./components/done.js";
 import { renderGraphScreen } from "./components/graph.js";
+import { renderWordListScreen } from "./components/wordList.js";
 
 const app = document.getElementById("app");
 
@@ -73,6 +74,8 @@ let runStats = { sure: 0, guess: 0, miss: 0 };
 let currentChoices = [];
 let currentCorrectIndex = -1;
 let isWeakSession = false;
+let wordListGrade = "all";
+let wordListQuery = "";
 
 function currentDeck() {
   return DECKS[mode];
@@ -132,6 +135,7 @@ function render() {
       newUnitLabel: deck.newUnitLabel,
       subtitle: deck.subtitle(deck.items.length),
       weakCount: getWeakItems(deck.items, progress).length,
+      hasWordList: mode === "words",
     });
   } else if (screen === "quiz") {
     if (mode === "grammar") {
@@ -161,6 +165,18 @@ function render() {
     });
   } else if (screen === "graph") {
     app.innerHTML = renderGraphScreen({ history });
+  } else if (screen === "wordlist") {
+    app.innerHTML = renderWordListScreen({
+      words: WORDS,
+      progress: progressByDeck.words,
+      gradeFilter: wordListGrade,
+      query: wordListQuery,
+    });
+    const searchInput = document.getElementById("wordlist-search");
+    if (searchInput) {
+      searchInput.focus();
+      searchInput.setSelectionRange(searchInput.value.length, searchInput.value.length);
+    }
   }
 }
 
@@ -177,6 +193,16 @@ function goDeck(deckKey) {
 
 function goGraph() {
   screen = "graph";
+  render();
+}
+
+function goWordList() {
+  screen = "wordlist";
+  render();
+}
+
+function setWordListGrade(grade) {
+  wordListGrade = grade;
   render();
 }
 
@@ -294,9 +320,18 @@ app.addEventListener("click", (event) => {
   } else if (action === "go-menu") goMenu();
   else if (action === "go-deck") goDeck(target.dataset.deck);
   else if (action === "go-graph") goGraph();
+  else if (action === "go-wordlist") goWordList();
+  else if (action === "set-wordlist-grade") setWordListGrade(target.dataset.grade);
   else if (action === "pick") pickChoice(Number(target.dataset.index));
   else if (action === "grade") gradeAnswer(target.dataset.outcome);
   else if (action === "speak") speak(target.dataset.text);
+});
+
+app.addEventListener("input", (event) => {
+  if (event.target.id === "wordlist-search") {
+    wordListQuery = event.target.value;
+    render();
+  }
 });
 
 document.addEventListener("keydown", (event) => {
